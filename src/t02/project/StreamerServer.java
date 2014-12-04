@@ -1,14 +1,16 @@
 package t02.project;
 
+import org.omg.PortableInterceptor.SYSTEM_EXCEPTION;
+
 import javax.sound.sampled.AudioFormat;
 import javax.sound.sampled.AudioInputStream;
 import javax.sound.sampled.AudioSystem;
 import javax.sound.sampled.UnsupportedAudioFileException;
-import java.io.ByteArrayOutputStream;
 import java.io.File;
 import java.io.IOException;
-import java.io.InputStream;
+import java.net.DatagramPacket;
 import java.net.DatagramSocket;
+import java.net.InetAddress;
 import java.util.Scanner;
 
 /**
@@ -23,7 +25,8 @@ public class StreamerServer {
         // Get sound file
         Scanner sc = new Scanner(System.in);
         System.out.println("Enter audio file path(or press enter to skip): ");
-        // input file
+
+        // input file path
         String audioFile = sc.nextLine();
         if (audioFile.equals("")) audioFile = System.getProperty("user.dir") + "/src/t02/audio/audio.wav";
 
@@ -34,7 +37,7 @@ public class StreamerServer {
         AudioInputStream stream = AudioSystem.getAudioInputStream(new File(audioFile));
         AudioFormat format = stream.getFormat();
         float bitrate = (format.getSampleSizeInBits() * format.getSampleRate() * format.getChannels()) / 4;
-        System.out.println(bitrate);
+
         // params of batch file
         String[] param = new String[]{ENCODER, audioFile, audioFileFormat, ""+bitrate};
 
@@ -44,8 +47,26 @@ public class StreamerServer {
         Process process = processBuilder.start();
         process.waitFor();
 
-        // Open connection
+        // Establish connection with client
         DatagramSocket serverSocket = new DatagramSocket(SOCKET);
+        DatagramPacket receivePacket = new DatagramPacket(new byte[4], 4);
+        while(true) {
+            serverSocket.receive(receivePacket);
+            String sentence = new String(receivePacket.getData());
+            if (sentence.equals("SEND")) break;
+        }
+
+        // Get client info
+        InetAddress IPAddress = receivePacket.getAddress();
+        int port = receivePacket.getPort();
+
+        //TODO Packtize encoded audio
+
+        //TODO send to client
+        while(true) {
+
+        }
+
 
 
     }
