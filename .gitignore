@@ -5,3 +5,6 @@ src/UDPServer.java
 .idea
 out/
 AudioStreamer.iml
+src/out.mp3
+src/out.txt
+src/test.wav
