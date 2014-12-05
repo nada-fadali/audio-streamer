@@ -7,6 +7,7 @@ import javax.sound.sampled.UnsupportedAudioFileException;
 import java.io.*;
 import java.net.DatagramPacket;
 import java.net.DatagramSocket;
+import java.net.InetAddress;
 import java.net.SocketException;
 
 
@@ -15,10 +16,12 @@ import java.net.SocketException;
  */
 
 public class StreamerServer {
-    final static int SOCKET = 9876;
+    final static int PORT = 9876;
     final static String ENCODER = System.getProperty("user.dir") + "/src/t02/batch/encode.bat";
 
     private DatagramSocket socket;
+    private InetAddress clientAddress;
+
 
     private BatchEvent encodeBatch;
 
@@ -32,11 +35,10 @@ public class StreamerServer {
     public StreamerServer() throws SocketException {
         this.encodeBatch = new BatchEvent();
         this.sendFile = new FileEvent();
-        this.socket = new DatagramSocket(SOCKET);
     }
 
 
-    public void run() throws IOException, UnsupportedAudioFileException, InterruptedException {
+    public void connect() throws IOException, UnsupportedAudioFileException, InterruptedException {
         // get original file ready
         this.setOriginalFile();
 
@@ -46,32 +48,14 @@ public class StreamerServer {
         // get sendFile ready
         this.setSendFile();
 
+        // establish connection
+        this.establishConnection();
 
+        // send file
+        this.sendFileOverConnection();
 
-
-
-
-
-//        // Packtize encoded audio
-//
-//        // Establish connection with client
-//        DatagramSocket serverSocket = new DatagramSocket(SOCKET);
-//        DatagramPacket receivePacket = new DatagramPacket(new byte[4], 4);
-//        while(true) {
-//            serverSocket.receive(receivePacket);
-//            String sentence = new String(receivePacket.getData());
-//            if (sentence.equals("SEND")) break;
-//        }
-//
-//        // Get client info
-//        //InetAddress IPAddress = receivePacket.getAddress();
-//        //int port = receivePacket.getPort();
-//
-//        //send to client
-//        while(true) {
-//            serverSocket.receive(receivePacket);
-//            System.out.println(new String(receivePacket.getData()));
-//        }
+        // close connection
+        this.socket.close();
     }
 
     private void setOriginalFile() throws IOException, UnsupportedAudioFileException {
@@ -84,9 +68,11 @@ public class StreamerServer {
         }
 
         // input file audio format (=wav if default)
+        System.out.println("Setting original audio format...");
         this.orignalAudioFormat = this.originalFilePath.substring(this.originalFilePath.lastIndexOf(".") + 1);
 
         // input audio bitrate
+        System.out.println("Calculating original audio bitrate...");
         AudioInputStream stream = AudioSystem.getAudioInputStream(new File(this.originalFilePath));
         AudioFormat format = stream.getFormat();
         stream.close();
@@ -103,14 +89,14 @@ public class StreamerServer {
                 }
         );
         this.encodeBatch.setDirectory(System.getProperty("user.dir")+"/src/t02/audio");
+        System.out.println("Executing batch file...");
         this.encodeBatch.execute();
     }
 
     private void setSendFile() throws IOException, UnsupportedAudioFileException {
+        System.out.println("Preparing the encoded audio to be sent...");
         // set destination path of send file
         this.sendFile.setDestinationPath("/src/t02/audio");
-
-
         this.sendFile.setFilename("output.mp3");
         this.sendFile.setSourcePath(System.getProperty("user.dir") + "/src/t02/audio/output.mp3");
         File file = new File(this.sendFile.getSourcePath());
@@ -138,11 +124,39 @@ public class StreamerServer {
         }
     }
 
+    private void establishConnection() throws IOException {
+        System.out.println("Establishing connection with client...");
+        this.socket = new DatagramSocket(PORT);
+        while(true){
+            DatagramPacket receivePacket = new DatagramPacket(new byte[4], 4);
+            while(true) {
+                this.socket.receive(receivePacket);
+                String sentence = new String(receivePacket.getData());
+                if (sentence.equals("SEND")) break;
+            }
+            // Get client info
+            this.clientAddress = receivePacket.getAddress();
+            System.out.println("Client " + this.clientAddress + " connected...");
+        }
+    }
+
+    private void sendFileOverConnection() throws IOException {
+        System.out.println("Sending audio file to client...");
+        ByteArrayOutputStream outputStream = new ByteArrayOutputStream();
+        ObjectOutputStream os = new ObjectOutputStream(outputStream);
+        os.writeObject(this.sendFile);
+        byte[] data = outputStream.toByteArray();
+
+        DatagramPacket sendPacket = new DatagramPacket(data, data.length, this.clientAddress, PORT);
+        socket.send(sendPacket);
+        System.out.println("File sent!");
+    }
+
     public static void main(String[] args) {
         StreamerServer server = null;
         try {
             server = new StreamerServer();
-            server.run();
+            server.connect();
         } catch (Exception e) {
             e.printStackTrace();
         }
