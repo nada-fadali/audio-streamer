@@ -9,26 +9,53 @@ import java.net.*;
  * Created by nada on 04/12/14.
  */
 public class StreamerClient {
-    final static String LOCALHOST = "localhost";
+    final static String SERVERADDRESS = "localhost";
+    private final static int PORT = 9876;
+    private final static String DECODER = System.getProperty("user.dir") + "/src/t02/batch/decode.bat";
 
-    public static void main(String[] args) throws IOException {
-        DatagramSocket clientSocket = new DatagramSocket();
-        InetAddress IPAddress = InetAddress.getByName(LOCALHOST);
+    private DatagramSocket socket;
+    private InetAddress serverAddress;
 
-        //TODO Establish connection with server
-        byte[] sendData;
-        byte[] receiveData = new byte[1024];
-        BufferedReader inputCommand = new BufferedReader(new InputStreamReader(System.in));
-        String sentence = inputCommand.readLine();
-        sendData = sentence.getBytes();
-        DatagramPacket sendPacket = new DatagramPacket(sendData, sendData.length, IPAddress, 9876);
-        clientSocket.send(sendPacket);
-        clientSocket.close();
+    private BatchEvent decodeBatch;
 
-        //TODO Receive packets from server
+    private FileEvent receivedFile;
 
-        //TODO decode received audio
+    public StreamerClient(){
+        this.decodeBatch = new BatchEvent();
+        this.receivedFile = new FileEvent();
+    }
+
+    public void connect() throws IOException {
+        // establish connection
+        this.establishConnection();
 
 
     }
+
+    public void establishConnection() throws IOException {
+        BufferedReader rdr = new BufferedReader(new InputStreamReader(System.in));
+        System.out.println("Do you wish to connect to server and receive audio?(ok/no)");
+        String response = rdr.readLine();
+        rdr.close();
+        if (response.equalsIgnoreCase("ok")){
+            this.socket = new DatagramSocket();
+            this.serverAddress = InetAddress.getByName("localhost");
+        } else {
+            System.out.println("Okay. Bye!");
+            System.exit(0);
+        }
+    }
+
+
+    public static void main(String[] args) {
+        StreamerClient client = null;
+        try {
+            client = new StreamerClient();
+            client.connect();
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
+    }
+
+
 }

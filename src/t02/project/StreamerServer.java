@@ -10,14 +10,13 @@ import java.net.DatagramSocket;
 import java.net.InetAddress;
 import java.net.SocketException;
 
-
 /**
  * Created by nada on 04/12/14.
  */
 
 public class StreamerServer {
-    final static int PORT = 9876;
-    final static String ENCODER = System.getProperty("user.dir") + "/src/t02/batch/encode.bat";
+    private final static int PORT = 9876;
+    private final static String ENCODER = System.getProperty("user.dir") + "/src/t02/batch/encode.bat";
 
     private DatagramSocket socket;
     private InetAddress clientAddress;
@@ -38,6 +37,9 @@ public class StreamerServer {
 
 
     public void connect() throws IOException, UnsupportedAudioFileException, InterruptedException {
+        // establish connection
+        this.establishConnection();
+
         // get original file ready
         this.setOriginalFile();
 
@@ -46,9 +48,6 @@ public class StreamerServer {
 
         // get sendFile ready
         this.setSendFile();
-
-        // establish connection
-        this.establishConnection();
 
         // send file
         this.sendFileOverConnection();
@@ -62,6 +61,7 @@ public class StreamerServer {
         BufferedReader rdr = new BufferedReader(new InputStreamReader(System.in));
         System.out.println("Enter audio file path(or press enter to skip): ");
         this.originalFilePath = rdr.readLine();
+        rdr.close();
         if(this.originalFilePath.equals("")) {
             this.originalFilePath = System.getProperty("user.dir") + "/src/t02/audio/audio.wav";
         }
@@ -113,6 +113,7 @@ public class StreamerServer {
                 this.sendFile.setFileSize(len);
                 this.sendFile.setFileData(fileBytes);
                 this.sendFile.setStatus("Success");
+                diStream.close();
             } catch (Exception e) {
                 e.printStackTrace();
                 this.sendFile.setStatus("Error");
@@ -155,6 +156,7 @@ public class StreamerServer {
         ObjectOutputStream os = new ObjectOutputStream(outputStream);
         os.writeObject(this.sendFile);
         data = outputStream.toByteArray();
+        os.close();
 
         // packetize data and send
         // calculate step for packetizing
