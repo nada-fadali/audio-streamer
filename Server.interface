@@ -1,0 +1,27 @@
+public class StreamerServer{
+	private final static int PORT = 9876;
+	private final static String ENCODER = System.getProperty("user.dir") + "/src/t02/batch/encode.bat";
+	private DatagramSocket socket;
+	private InetAddress clientAddress;
+	private int clientPort;
+	private BatchEvent encodeBatch;
+	private FileEvent sendFile;
+	private String originalFilePath;
+	private float originalBitrate;
+	private String orignalAudioFormat;
+
+	public StreamerServer();
+	public void connect();
+
+	private void setOriginalFile();
+	private void setEncodeBatch();
+	private void setSendFile();
+	private void establishConnection();
+	private void sendFileOverConnection();
+
+
+	public static void main(String[] args) {
+        StreamerServer server = server = new StreamerServer();
+        server.connect();
+    }
+}

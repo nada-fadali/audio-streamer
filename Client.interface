@@ -1,0 +1,25 @@
+public class StreamerClient {
+    private final static String ADDRESS = "localhost";
+    private final static int PORT = 9876;
+    private final static String DECODER = System.getProperty("user.dir") + "/src/t02/batch/decode.bat";
+    private DatagramSocket socket;
+    private BatchEvent decodeBatch;
+    private FileEvent receivedFile;
+    private String originalAudioBitrate;
+
+
+    public StreamerClient();
+    public void connect();
+    private void establishConnection();
+    private void receiveOriginalBitrate();
+    private void receiveAudioData();
+    private void saveReceivedFile();
+    private void setDecodeBatch();
+
+
+    public static void main(String[] args) {
+        StreamerClient client = new StreamerClient();
+        client.connect();
+    }
+
+}
