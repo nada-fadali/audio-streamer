@@ -6,6 +6,8 @@ import java.net.DatagramPacket;
 import java.net.DatagramSocket;
 import java.net.InetAddress;
 
+import javazoom.jl.player.*;
+
 /**
  * Created by nada on 04/12/14.
  */
@@ -49,13 +51,22 @@ public class StreamerClient {
 
         // close connection
         this.socket.close();
+
+        // play sound
+        System.out.println("Do you wish to play file?(ok/no): ");
+        BufferedReader rdr = new BufferedReader(new InputStreamReader(System.in));
+        String response = rdr.readLine();
+        rdr.close();
+        if(response.equalsIgnoreCase("ok"))
+            this.playAudioFile();
+
+        System.out.println("Bye!");
     }
 
     private void establishConnection() throws IOException {
         BufferedReader rdr = new BufferedReader(new InputStreamReader(System.in));
         System.out.println("Do you wish to connect to server and receive audio?(ok/no)");
         String response = rdr.readLine();
-        rdr.close();
         if (response.equalsIgnoreCase("ok")){
             System.out.println("Connecting to Server...");
             this.socket = new DatagramSocket();
@@ -135,6 +146,16 @@ public class StreamerClient {
         this.decodeBatch.execute();
 
         System.out.println("Done decoding!");
+    }
+
+    private void playAudioFile(){
+        try{
+            FileInputStream fis = new FileInputStream(System.getProperty("user.dir") + "/src/t02/audio/decoded.mp3");
+            Player playMP3 = new Player(fis);
+
+            playMP3.play();
+
+        }catch(Exception e){System.out.println(e);}
     }
 
     public static void main(String[] args) {
