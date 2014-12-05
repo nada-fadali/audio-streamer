@@ -20,6 +20,7 @@ public class StreamerServer {
 
     private DatagramSocket socket;
     private InetAddress clientAddress;
+    private int clientPort;
 
     private BatchEvent encodeBatch;
 
@@ -127,27 +128,30 @@ public class StreamerServer {
     private void establishConnection() throws IOException {
         System.out.println("Establishing connection with client...");
         this.socket = new DatagramSocket(PORT);
-        DatagramPacket receivePacket = new DatagramPacket(new byte[2], 2);
         while(true){
+            DatagramPacket receivePacket = new DatagramPacket(new byte[2], 2);
             this.socket.receive(receivePacket);
             String sentence = new String(receivePacket.getData());
-            if (sentence.equalsIgnoreCase("ok")) break;
+            if (sentence.equalsIgnoreCase("ok")) {
+                // Get client info
+                this.clientAddress = receivePacket.getAddress();
+                this.clientPort = receivePacket.getPort();
+                System.out.println("Client " + this.clientAddress + " connected...");
+                break;
+            }
         }
-        // Get client info
-        this.clientAddress = receivePacket.getAddress();
-        System.out.println("Client " + this.clientAddress + " connected...");
     }
 
     private void sendFileOverConnection() throws IOException {
         System.out.println("Sending audio file data to client...");
         // send original format
         byte[] data = this.orignalAudioFormat.getBytes();
-        DatagramPacket sendPacket = new DatagramPacket(data, data.length, this.clientAddress, PORT);
+        DatagramPacket sendPacket = new DatagramPacket(data, data.length, this.clientAddress, this.clientPort);
         this.socket.send(sendPacket);
 
         // send original bitrate
         data = ("" + this.originalBitrate).getBytes();
-        sendPacket = new DatagramPacket(data, data.length, this.clientAddress, PORT);
+        sendPacket = new DatagramPacket(data, data.length, this.clientAddress, this.clientPort);
         this.socket.send(sendPacket);
 
         System.out.println("Sending audio file to client...");
@@ -165,7 +169,7 @@ public class StreamerServer {
         {
             byte[] packetizedAudio = new byte[step];
             System.arraycopy(data, i, packetizedAudio, 0, packetizedAudio.length-1);
-            sendPacket = new DatagramPacket(packetizedAudio, packetizedAudio.length, this.clientAddress, PORT);
+            sendPacket = new DatagramPacket(packetizedAudio, packetizedAudio.length, this.clientAddress, this.clientPort);
             this.socket.send(sendPacket);
         }
 
