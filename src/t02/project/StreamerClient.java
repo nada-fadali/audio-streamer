@@ -1,5 +1,6 @@
 package t02.project;
 
+import javax.sound.sampled.UnsupportedAudioFileException;
 import java.io.*;
 import java.net.DatagramPacket;
 import java.net.DatagramSocket;
@@ -11,30 +12,29 @@ import java.net.InetAddress;
 public class StreamerClient {
     private final static String ADDRESS = "localhost";
     private final static int PORT = 9876;
-//    private final static String DECODER = System.getProperty("user.dir") + "/src/t02/batch/decode.bat";
+    private final static String DECODER = System.getProperty("user.dir") + "/src/t02/batch/decode.bat";
 
     private DatagramSocket socket;
-    private InetAddress address;
 
-//    private BatchEvent decodeBatch;
-//
+    private BatchEvent decodeBatch;
+
     private FileEvent receivedFile;
 
-    private String originalAudioFormat;
+//    private String originalAudioFormat;
     private String originalAudioBitrate;
 
     public StreamerClient(){
-//        this.decodeBatch = new BatchEvent();
+        this.decodeBatch = new BatchEvent();
         this.receivedFile = new FileEvent();
     }
 
-    public void connect() throws IOException, ClassNotFoundException {
+    public void connect() throws IOException, ClassNotFoundException, InterruptedException, UnsupportedAudioFileException {
         // establish connection
         this.establishConnection();
 
-        // receive original audio format from server
-        this.receiveOriginalAudioFormat();
-
+//        // receive original audio format from server
+//        this.receiveOriginalAudioFormat();
+//
         // receive original audio bitrate from server
         this.receiveOriginalBitrate();
 
@@ -43,6 +43,9 @@ public class StreamerClient {
 
         // save received audio to hard disk
         this.saveReceivedFile();
+
+        // decode audio
+        this.setDecodeBatch();
 
         // close connection
         this.socket.close();
@@ -56,9 +59,9 @@ public class StreamerClient {
         if (response.equalsIgnoreCase("ok")){
             System.out.println("Connecting to Server...");
             this.socket = new DatagramSocket();
-            this.address = InetAddress.getByName(ADDRESS);
+            InetAddress address = InetAddress.getByName(ADDRESS);
             byte[] sendData = response.getBytes();
-            DatagramPacket sendPacket = new DatagramPacket(sendData, sendData.length, this.address, PORT);
+            DatagramPacket sendPacket = new DatagramPacket(sendData, sendData.length, address, PORT);
             this.socket.send(sendPacket);
             System.out.println("Connected!");
         } else {
@@ -67,14 +70,14 @@ public class StreamerClient {
         }
     }
 
-    private void receiveOriginalAudioFormat() throws IOException {
-        System.out.println("Receiving original audio format from Server...");
-        byte[] receiveData = new byte[10];
-        DatagramPacket receivePacket = new DatagramPacket(receiveData, receiveData.length);
-        this.socket.receive(receivePacket);
-        this.originalAudioFormat = new String(receivePacket.getData());
-        System.out.println("audio format: " + this.originalAudioFormat);
-    }
+//    private void receiveOriginalAudioFormat() throws IOException {
+//        System.out.println("Receiving original audio format from Server...");
+//        byte[] receiveData = new byte[10];
+//        DatagramPacket receivePacket = new DatagramPacket(receiveData, receiveData.length);
+//        this.socket.receive(receivePacket);
+//        this.originalAudioFormat = new String(receivePacket.getData());
+//        System.out.println("audio format: " + this.originalAudioFormat);
+//    }
 
     private void receiveOriginalBitrate() throws IOException {
         System.out.println("Receiving original audio bitrate...");
@@ -82,7 +85,7 @@ public class StreamerClient {
         DatagramPacket receivePacket = new DatagramPacket(receiveData, receiveData.length);
         socket.receive(receivePacket);
         this.originalAudioBitrate = new String(receivePacket.getData());
-        System.out.println("audio bitrate: " + this.originalAudioBitrate);
+        System.out.println("original audio bitrate: " + this.originalAudioBitrate);
     }
 
     private void receiveAudioData() throws IOException, ClassNotFoundException {
@@ -106,28 +109,32 @@ public class StreamerClient {
 
     private void saveReceivedFile() throws IOException {
         System.out.println("Saving to drive...");
-        String outputFile = System.getProperty("user.dir")+ this.receivedFile.getDestinationPath() + this.receivedFile.getFilename();
+        String output = System.getProperty("user.dir")+ this.receivedFile.getDestinationPath() + this.receivedFile.getFilename();
         if (!new File(System.getProperty("user.dir")+this.receivedFile.getDestinationPath()).exists()) {
             new File(System.getProperty("user.dir")+this.receivedFile.getDestinationPath()).mkdirs();
         }
-        File dstFile = new File(outputFile);
+        File dstFile = new File(output);
         FileOutputStream fileOutputStream = null;
         fileOutputStream = new FileOutputStream(dstFile);
         fileOutputStream.write(this.receivedFile.getFileData());
         fileOutputStream.flush();
         fileOutputStream.close();
-        System.out.println("Received file : " + outputFile + " is successfully saved!");
+        System.out.println("Received file : " + output + " is successfully saved!");
     }
 
-    // helper method
-    // concatenate two arrays
-    public static byte[] concat(byte[] a, byte[] b) {
-        int aLen = a.length;
-        int bLen = b.length;
-        byte[] c= new byte[aLen+bLen];
-        System.arraycopy(a, 0, c, 0, aLen);
-        System.arraycopy(b, 0, c, aLen, bLen);
-        return c;
+
+    private void setDecodeBatch() throws IOException, InterruptedException {
+        this.decodeBatch.setParam(
+                new String[]{
+                        DECODER,
+                        this.originalAudioBitrate.replaceAll("[^0-9]+", "") + "k"
+                }
+        );
+        this.decodeBatch.setDirectory(System.getProperty("user.dir") + "/src/t02/audio");
+        System.out.println("Executing batch file...");
+        this.decodeBatch.execute();
+
+        System.out.println("Done decoding!");
     }
 
     public static void main(String[] args) {
