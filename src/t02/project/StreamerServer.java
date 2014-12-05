@@ -85,7 +85,7 @@ public class StreamerServer {
                         ENCODER,
                         this.originalFilePath,
                         this.orignalAudioFormat,
-                        "" + (this.originalBitrate/4)
+                        (int) (this.originalBitrate / 4000) + "k"
                 }
         );
         this.encodeBatch.setDirectory(System.getProperty("user.dir")+"/src/t02/audio");
@@ -96,8 +96,8 @@ public class StreamerServer {
     private void setSendFile() throws IOException, UnsupportedAudioFileException {
         System.out.println("Preparing the encoded audio to be sent...");
         // set destination path of send file
-        this.sendFile.setDestinationPath("/src/t02/audio");
-        this.sendFile.setFilename("output.mp3");
+        this.sendFile.setDestinationPath("/src/t02/audio/");
+        this.sendFile.setFilename("received.mp3");
         this.sendFile.setSourcePath(System.getProperty("user.dir") + "/src/t02/audio/output.mp3");
         File file = new File(this.sendFile.getSourcePath());
         if (file.isFile()) {
@@ -162,16 +162,27 @@ public class StreamerServer {
         data = outputStream.toByteArray();
         os.close();
 
-        // packetize data and send
-        // calculate step for packetizing
-        int step = getStep(data.length);
-        for (int i = 0; i < data.length; i+=step)
-        {
-            byte[] packetizedAudio = new byte[step];
-            System.arraycopy(data, i, packetizedAudio, 0, packetizedAudio.length-1);
-            sendPacket = new DatagramPacket(packetizedAudio, packetizedAudio.length, this.clientAddress, this.clientPort);
-            this.socket.send(sendPacket);
-        }
+        // send data
+        sendPacket = new DatagramPacket(data, data.length, this.clientAddress, this.clientPort);
+        this.socket.send(sendPacket);
+
+//        // packetize data and send
+//        // calculate step for packetizing
+//        int step = getStep(data.length);
+////        System.out.println(step);
+////        System.out.println(data.length);
+//        for (int i = 0; i < data.length; i+=step)
+//        {
+//            byte[] packetizedAudio = new byte[step];
+//            System.arraycopy(data, i, packetizedAudio, 0, packetizedAudio.length-1);
+//            sendPacket = new DatagramPacket(packetizedAudio, packetizedAudio.length, this.clientAddress, this.clientPort);
+//            this.socket.send(sendPacket);
+//        }
+//
+//        // send end of transmission
+//        byte[] end = ("end").getBytes();
+//        sendPacket = new DatagramPacket(end, end.length, this.clientAddress, this.clientPort);
+//        this.socket.send(sendPacket);
 
         System.out.println("File sent!");
     }
@@ -181,9 +192,8 @@ public class StreamerServer {
     private static int getStep(int num){
         int step = 1;
         for (int i = 2; i < num / 2; i++) {
-            if ((num % i == 0) && (i >= 1024)) {
-                step = i;
-                break;
+            if ((num % i == 0) && (i >= 12)) {
+                step = i; break;
             }
         }
         return step;

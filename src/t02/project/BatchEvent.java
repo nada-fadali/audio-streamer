@@ -16,6 +16,9 @@ public class BatchEvent {
 
     public void setParam(String[] param) {
         this.param = param;
+        for (int i = 0; i < param.length; i++) {
+            System.out.println(param[i]);
+        }
     }
 
     public void setDirectory(String directory) {
