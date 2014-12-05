@@ -127,28 +127,33 @@ public class StreamerServer {
     private void establishConnection() throws IOException {
         System.out.println("Establishing connection with client...");
         this.socket = new DatagramSocket(PORT);
+        DatagramPacket receivePacket = new DatagramPacket(new byte[2], 2);
         while(true){
-            DatagramPacket receivePacket = new DatagramPacket(new byte[4], 4);
-            while(true) {
-                this.socket.receive(receivePacket);
-                String sentence = new String(receivePacket.getData());
-                if (sentence.equals("SEND")) break;
-            }
-            // Get client info
-            this.clientAddress = receivePacket.getAddress();
-            System.out.println("Client " + this.clientAddress + " connected...");
+            this.socket.receive(receivePacket);
+            String sentence = new String(receivePacket.getData());
+            if (sentence.equalsIgnoreCase("ok")) break;
         }
+        // Get client info
+        this.clientAddress = receivePacket.getAddress();
+        System.out.println("Client " + this.clientAddress + " connected...");
     }
 
     private void sendFileOverConnection() throws IOException {
         System.out.println("Sending audio file to client...");
+        // convert file data to byte array
         ByteArrayOutputStream outputStream = new ByteArrayOutputStream();
         ObjectOutputStream os = new ObjectOutputStream(outputStream);
         os.writeObject(this.sendFile);
         byte[] data = outputStream.toByteArray();
 
-        DatagramPacket sendPacket = new DatagramPacket(data, data.length, this.clientAddress, PORT);
-        socket.send(sendPacket);
+        // packetize data and send
+        for (int i = 0; i < data.length; i+=1024)
+        {
+            byte[] packetData = new byte[1024];
+            DatagramPacket sendPacket = new DatagramPacket(packetData, packetData.length, this.clientAddress, PORT);
+            socket.send(sendPacket);
+        }
+
         System.out.println("File sent!");
     }
 
