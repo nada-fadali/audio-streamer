@@ -22,7 +22,6 @@ public class StreamerServer {
     private DatagramSocket socket;
     private InetAddress clientAddress;
 
-
     private BatchEvent encodeBatch;
 
     private FileEvent sendFile;
@@ -139,22 +138,49 @@ public class StreamerServer {
     }
 
     private void sendFileOverConnection() throws IOException {
+        System.out.println("Sending audio file data to client...");
+        // send original format
+        byte[] data = this.orignalAudioFormat.getBytes();
+        DatagramPacket sendPacket = new DatagramPacket(data, data.length, this.clientAddress, PORT);
+        this.socket.send(sendPacket);
+
+        // send original bitrate
+        data = ("" + this.originalBitrate).getBytes();
+        sendPacket = new DatagramPacket(data, data.length, this.clientAddress, PORT);
+        this.socket.send(sendPacket);
+
         System.out.println("Sending audio file to client...");
         // convert file data to byte array
         ByteArrayOutputStream outputStream = new ByteArrayOutputStream();
         ObjectOutputStream os = new ObjectOutputStream(outputStream);
         os.writeObject(this.sendFile);
-        byte[] data = outputStream.toByteArray();
+        data = outputStream.toByteArray();
 
         // packetize data and send
-        for (int i = 0; i < data.length; i+=1024)
+        // calculate step for packetizing
+        int step = getStep(data.length);
+        for (int i = 0; i < data.length; i+=step)
         {
-            byte[] packetData = new byte[1024];
-            DatagramPacket sendPacket = new DatagramPacket(packetData, packetData.length, this.clientAddress, PORT);
-            socket.send(sendPacket);
+            byte[] packetizedAudio = new byte[step];
+            System.arraycopy(data, i, packetizedAudio, 0, packetizedAudio.length-1);
+            sendPacket = new DatagramPacket(packetizedAudio, packetizedAudio.length, this.clientAddress, PORT);
+            this.socket.send(sendPacket);
         }
 
         System.out.println("File sent!");
+    }
+
+    // helper method
+    // calculate step for packetizing data array
+    private static int getStep(int num){
+        int step = 1;
+        for (int i = 2; i < num / 2; i++) {
+            if ((num % i == 0) && (i >= 1024)) {
+                step = i;
+                break;
+            }
+        }
+        return step;
     }
 
     public static void main(String[] args) {
